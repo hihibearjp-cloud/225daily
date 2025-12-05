@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- PWA 必要設定 -->
+  <meta name="theme-color" content="#5D4037">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+
+  <title>管班級</title>
+
+  <style>
+    :root{
+      --coffee:#5D4037;
+      --bg:#FEF9F2;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      font-family: 'ZCOOL KuaiLe', sans-serif;
+      background: var(--bg);
+      margin:0;
+      padding:16px;
+    }
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    h1{ margin:0; font-size:1.4rem; }
+    .card{
+      background:#fff;
+      border:3px solid var(--coffee);
+      border-radius:12px;
+      padding:12px;
+      margin-top:12px;
+      box-shadow:4px 4px 0 rgba(0,0,0,0.04);
+    }
+    .row{ display:flex; gap:8px; align-items:center; }
+    .row.wrap{ flex-wrap:wrap; }
+    .btn{
+      border:3px solid var(--coffee);
+      padding:8px 12px;
+      border-radius:12px;
+      background:#fff;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .btn.big{ padding:12px 16px; font-size:1rem; }
+    .badge{
+      background:var(--coffee);
+      color:#fff;
+      padding:4px 8px;
+      border-radius:999px;
+      font-weight:800;
+      margin-left:6px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:8px;
+    }
+    .student{
+      border:2px dashed #ccc;
+      border-radius:8px;
+      padding:6px;
+      background:#fff;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:999;
+    }
+    .modal .box{
+      background:#fff;
+      padding:12px;
+      border-radius:12px;
+      width:100%;
+      max-width:520px;
+      border:3px solid var(--coffee);
+      max-height:85vh;
+      overflow:auto;
+    }
+    .list-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    textarea,input,select{
+      width:100%;
+      padding:8px;
+      border:2px solid var(--coffee);
+      border-radius:8px;
+    }
+    .small{ font-size:0.85rem; }
+    footer{ margin-top:24px; font-size:0.8rem; color:#666; }
+    @media(max-width:600px){
+      .list-grid{ grid-template-columns:repeat(3,1fr); }
+      h1{ font-size:1.1rem; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>📚 管班級</h1>
+      <div class="small" id="subtitle"></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="backupBtn">備份 JSON</button>
+      <input id="restoreFile" type="file" accept=".json" style="display:none">
+      <button class="btn" id="restoreBtn">還原 JSON</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div style="flex:1;max-width:360px">
+        <label class="small">日期</label>
+        <input type="date" id="dateInput" />
+      </div>
+      <div style="flex:1;max-width:240px">
+        <label class="small">週次 / 值日</label>
+        <input id="weekInput" placeholder="例：2週 / 幹部: 王小明" />
+      </div>
+      <div style="flex-basis:180px;text-align:right">
+        <label class="small">&nbsp;</label><br/>
+        <button class="btn big" id="exportCsvBtn">匯出今日 CSV</button>
+      </div>
+    </div>
+  </div>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- PWA 必要設定 -->
+  <meta name="theme-color" content="#5D4037">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
+
+  <title>管班級</title>
+
+  <style>
+    :root{
+      --coffee:#5D4037;
+      --bg:#FEF9F2;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      font-family: 'ZCOOL KuaiLe', sans-serif;
+      background: var(--bg);
+      margin:0;
+      padding:16px;
+    }
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    h1{ margin:0; font-size:1.4rem; }
+    .card{
+      background:#fff;
+      border:3px solid var(--coffee);
+      border-radius:12px;
+      padding:12px;
+      margin-top:12px;
+      box-shadow:4px 4px 0 rgba(0,0,0,0.04);
+    }
+    .row{ display:flex; gap:8px; align-items:center; }
+    .row.wrap{ flex-wrap:wrap; }
+    .btn{
+      border:3px solid var(--coffee);
+      padding:8px 12px;
+      border-radius:12px;
+      background:#fff;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .btn.big{ padding:12px 16px; font-size:1rem; }
+    .badge{
+      background:var(--coffee);
+      color:#fff;
+      padding:4px 8px;
+      border-radius:999px;
+      font-weight:800;
+      margin-left:6px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:8px;
+    }
+    .student{
+      border:2px dashed #ccc;
+      border-radius:8px;
+      padding:6px;
+      background:#fff;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.45);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:999;
+    }
+    .modal .box{
+      background:#fff;
+      padding:12px;
+      border-radius:12px;
+      width:100%;
+      max-width:520px;
+      border:3px solid var(--coffee);
+      max-height:85vh;
+      overflow:auto;
+    }
+    .list-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    textarea,input,select{
+      width:100%;
+      padding:8px;
+      border:2px solid var(--coffee);
+      border-radius:8px;
+    }
+    .small{ font-size:0.85rem; }
+    footer{ margin-top:24px; font-size:0.8rem; color:#666; }
+    @media(max-width:600px){
+      .list-grid{ grid-template-columns:repeat(3,1fr); }
+      h1{ font-size:1.1rem; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>📚 管班級</h1>
+      <div class="small" id="subtitle"></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="backupBtn">備份 JSON</button>
+      <input id="restoreFile" type="file" accept=".json" style="display:none">
+      <button class="btn" id="restoreBtn">還原 JSON</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div style="flex:1;max-width:360px">
+        <label class="small">日期</label>
+        <input type="date" id="dateInput" />
+      </div>
+      <div style="flex:1;max-width:240px">
+        <label class="small">週次 / 值日</label>
+        <input id="weekInput" placeholder="例：2週 / 幹部: 王小明" />
+      </div>
+      <div style="flex-basis:180px;text-align:right">
+        <label class="small">&nbsp;</label><br/>
+        <button class="btn big" id="exportCsvBtn">匯出今日 CSV</button>
+      </div>
+    </div>
+  </div>
