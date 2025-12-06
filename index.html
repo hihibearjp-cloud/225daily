@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>班級小管家 V14.0</title>
+    <title>班級小管家 V10.0</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- 1. 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. 引入 React 核心 (使用最穩定的 CDN) -->
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <!-- 2. 引入 React 核心 (UMD 版本，保證穩定) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- 3. 引入 Babel 解析器 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <!-- 3. 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
-        
+
         body {
             background-color: #FEF9F2;
             color: #5D4037;
@@ -28,13 +28,15 @@
             user-select: none;
             margin: 0; padding: 0;
         }
+
+        /* 載入提示 */
         #root:empty {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
             font-size: 1.5rem; color: #5D4037;
         }
         #root:empty::after { content: '🚀 系統啟動中...'; }
-        
+
         /* 3D 按鈕 */
         .btn-3d {
             transition: transform 0.05s, box-shadow 0.05s;
@@ -43,7 +45,8 @@
             border-radius: 16px; 
             font-weight: bold;
             display: flex; align-items: center; justify-content: center;
-            position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent;
+            position: relative; cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
         .btn-3d:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #5D4037; }
 
@@ -65,97 +68,92 @@
         .input-hand:focus { box-shadow: 3px 3px 0px #5D4037; }
         
         .modal-scroll { max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        
+        .manual-step-card {
+            background: white; border: 2px dashed #5D4037; border-radius: 16px; padding: 16px;
+            display: flex; flex-direction: column; align-items: center; text-align: center; position: relative;
+        }
+        .step-number {
+            position: absolute; top: -10px; left: -10px; width: 30px; height: 30px; background: #FF5252; color: white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #5D4037;
+        }
 
-        /* 顏色類別 */
+        /* 顏色工具類 */
         .bg-mint { background-color: #CDF0EA; }
         .bg-yellow { background-color: #FDFD96; }
         .bg-pink { background-color: #FFC4C4; }
         .bg-blue-soft { background-color: #C4E4FF; }
         .bg-orange-soft { background-color: #FFD8B1; }
+        .bg-dark { background-color: #4A4A4A; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- 錯誤攔截 -->
-    <div id="error-box" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:20px; text-align:center;">
-        <h2 style="color:red; font-size:24px;">⚠️ 發生錯誤</h2>
-        <p id="error-msg"></p>
-        <button onclick="localStorage.clear(); location.reload()" style="margin-top:20px; padding:10px 20px; background:#555; color:white; border-radius:8px;">重置資料 (急救用)</button>
-    </div>
-
-    <script>
-        window.onerror = function(msg, url, line) {
-            document.getElementById('root').style.display = 'none';
-            document.getElementById('error-box').style.display = 'flex';
-            document.getElementById('error-msg').innerText = msg + "\nLine: " + line;
-        };
-    </script>
-
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- 1. 內建 SVG 圖示 (手刻版，保證不缺圖) ---
+        // --- 1. 內建圖示 (SVG) ---
         const Icons = {
-            User: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
-            Clock: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
-            FileWarning: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
-            Edit3: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>,
-            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
-            FileSpreadsheet: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M8 13h2"></path><path d="M8 17h2"></path><path d="M14 13h2"></path><path d="M14 17h2"></path></svg>,
-            Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
-            Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"></polyline></svg>,
-            X: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-            Plus: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
-            Trash2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>,
-            Download: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>,
-            BookOpen: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>,
-            HelpCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
-            UserCog: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="15" r="3"></circle><circle cx="9" cy="7" r="4"></circle><path d="M10 15H6a4 4 0 0 0-4 4v2"></path><path d="m21.7 16.4.9-.9"></path><path d="m15.3 10 .9.9"></path><path d="m21.7 13.6-.9.9"></path><path d="m15.3 19.9.9-.9"></path></svg>,
-            Megaphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>,
-            Send: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
-            ClipboardCopy: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
-            PenTool: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19 7-7 3 3-7 7-3-3z"></path><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="m2 2 7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>,
-            AlertTriangle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
-            Share: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>,
-            MoreVertical: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>,
-            LayoutGrid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>,
-            CheckCircle2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>,
-            MicOff: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>,
-            MessageCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>,
-            PackageX: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path><path d="m7.5 4.27 9 5.15"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line><path d="m17 13 5 5m-5 0 5-5"></path></svg>,
-            Stethoscope: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4.8 2.3A.3.3 0 0 1 5 2h14a.3.3 0 0 1 .2.3v3.3a.3.3 0 0 1-.3.3H5a.3.3 0 0 1-.3-.3V2.3z"></path><path d="M6 5v5a6 6 0 0 0 12 0V5"></path><path d="M12 16v3"></path><circle cx="12" cy="21" r="2"></circle></svg>,
-            Briefcase: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>,
-            Palmtree: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"></path><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"></path><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.71 1.42 1.42-.71.71-4.24 4.24c1.96 1.96 5.28 1.8 7.42-.35"></path><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"></path></svg>,
-            Star: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>,
-            Smartphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg>,
-            Database: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>,
-            Upload: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
-            Cloud: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M20.8 15a5.5 5.5 0 0 0-9-9 5.5 5.5 0 0 0-7.7 7.7"/></svg>
+            User: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
+            Clock: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+            FileWarning: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 13v4"></path><path d="M12 9h.01"></path></svg>,
+            Edit3: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>,
+            List: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
+            FileSpreadsheet: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M8 13h2"></path><path d="M8 17h2"></path><path d="M14 13h2"></path><path d="M14 17h2"></path></svg>,
+            Settings: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+            Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>,
+            X: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Plus: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            Trash2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>,
+            Download: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>,
+            BookOpen: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>,
+            HelpCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
+            UserCog: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="15" r="3"></circle><circle cx="9" cy="7" r="4"></circle><path d="M10 15H6a4 4 0 0 0-4 4v2"></path><path d="m21.7 16.4.9-.9"></path><path d="m15.3 10 .9.9"></path><path d="m21.7 13.6-.9.9"></path><path d="m15.3 19.9.9-.9"></path></svg>,
+            Megaphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z"></path><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path></svg>,
+            Send: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
+            ClipboardCopy: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>,
+            PenTool: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3z"></path><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="m2 2 7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>,
+            AlertTriangle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>,
+            Share: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>,
+            MoreVertical: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>,
+            LayoutGrid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>,
+            CheckCircle2: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>,
+            AlertCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>,
+            MicOff: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>,
+            MessageCircle: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>,
+            PackageX: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path><path d="m7.5 4.27 9 5.15"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line><path d="m17 13 5 5m-5 0 5-5"></path></svg>,
+            Stethoscope: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 0 1 5 2h14a.3.3 0 0 1 .2.3v3.3a.3.3 0 0 1-.3.3H5a.3.3 0 0 1-.3-.3V2.3z"></path><path d="M6 5v5a6 6 0 0 0 12 0V5"></path><path d="M12 16v3"></path><circle cx="12" cy="21" r="2"></circle></svg>,
+            Briefcase: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>,
+            Palmtree: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"></path><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"></path><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.71 1.42 1.42-.71.71-4.24 4.24c1.96 1.96 5.28 1.8 7.42-.35"></path><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"></path></svg>,
+            Star: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>,
+            Smartphone: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg>,
+            Database: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>,
+            Upload: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
+            Cloud: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M20.8 15a5.5 5.5 0 0 0-9-9 5.5 5.5 0 0 0-7.7 7.7"/></svg>
         };
 
-        // --- 資料庫鍵名 (V14 確保乾淨) ---
-        const DB_KEY = 'classLogDB_V14_Stable';
-
+        const DB_KEY = 'classLogDB_V14_Final';
+        
         // --- 設定預設值 ---
         const DEFAULT_SUBJECTS = [{id:'chinese',label:'國文'},{id:'english',label:'英語'},{id:'math',label:'數學'},{id:'science',label:'理化'},{id:'civics',label:'公民'},{id:'history',label:'歷史'},{id:'geo',label:'地理'}];
-        const DEFAULT_BEHAVIORS = [{id:'item_missing',label:'物品未帶',icon:'PackageX',color:'bg-pink'},{id:'late_class',label:'晚進教室',icon:'Clock',color:'bg-yellow'},{id:'rude',label:'對師不禮貌',icon:'MicOff',color:'bg-pink'},{id:'noise',label:'吵鬧干擾',icon:'AlertCircle',color:'bg-pink'},{id:'chat',label:'聊天',icon:'MessageCircle',color:'bg-yellow'},{id:'note',label:'傳紙條',icon:'FileWarning',color:'bg-yellow'},{id:'other_book',label:'看課外書',icon:'BookOpen',color:'bg-yellow'},{id:'sleep',label:'打瞌睡',icon:'Coffee',color:'bg-pink'},{id:'no_hw_cls',label:'作業未交',icon:'FileWarning',color:'bg-pink'},{id:'other',label:'其他',icon:'PenTool',color:'bg-blue-soft'}];
-        const ATTENDANCE_TYPES = [{id:'late',label:'遲到',icon:Icons.Clock,color:'bg-yellow'},{id:'sick',label:'病假',icon:Icons.Stethoscope,color:'bg-mint'},{id:'official',label:'公假',icon:Icons.Briefcase,color:'bg-blue-soft'},{id:'personal',label:'事假',icon:Icons.Palmtree,color:'bg-purple-soft'},{id:'other_leave',label:'其他',icon:Icons.HelpCircle,color:'bg-gray-200'},{id:'absent',label:'缺席',icon:Icons.AlertCircle,color:'bg-pink'}];
-        const CONTACT_BOOK_TYPES = [{id:'cb_missing',label:'聯絡簿缺交',icon:Icons.X,color:'bg-pink'},{id:'cb_no_sign',label:'家長未簽名',icon:Icons.PenTool,color:'bg-yellow'},{id:'cb_good',label:'聯絡簿優良',icon:Icons.Star,color:'bg-mint'}];
+        const DEFAULT_BEHAVIORS = [{id:'item_missing',label:'物品未帶',icon:'PackageX',color:'bg-pink-200'},{id:'late_class',label:'晚進教室',icon:'Clock',color:'bg-yellow-200'},{id:'rude',label:'對師不禮貌',icon:'MicOff',color:'bg-pink-200'},{id:'noise',label:'吵鬧干擾',icon:'AlertCircle',color:'bg-pink-200'},{id:'chat',label:'聊天',icon:'MessageCircle',color:'bg-yellow-200'},{id:'note',label:'傳紙條',icon:'FileWarning',color:'bg-yellow-200'},{id:'other_book',label:'看課外書',icon:'BookOpen',color:'bg-yellow-200'},{id:'sleep',label:'打瞌睡',icon:'Coffee',color:'bg-pink-200'},{id:'no_hw_cls',label:'作業未交',icon:'FileWarning',color:'bg-pink-200'},{id:'other',label:'其他',icon:'PenTool',color:'bg-blue-200'}];
+        const ATTENDANCE_TYPES = [{id:'late',label:'遲到',icon:Icons.Clock,color:'bg-yellow-200'},{id:'sick',label:'病假',icon:Icons.Stethoscope,color:'bg-emerald-200'},{id:'official',label:'公假',icon:Icons.Briefcase,color:'bg-blue-200'},{id:'personal',label:'事假',icon:Icons.Palmtree,color:'bg-purple-200'},{id:'other_leave',label:'其他',icon:Icons.HelpCircle,color:'bg-gray-200'},{id:'absent',label:'缺席',icon:Icons.AlertCircle,color:'bg-pink-200'}];
+        const CONTACT_BOOK_TYPES = [{id:'cb_missing',label:'聯絡簿缺交',icon:Icons.X,color:'bg-pink-200'},{id:'cb_no_sign',label:'家長未簽名',icon:Icons.PenTool,color:'bg-yellow-200'},{id:'cb_good',label:'聯絡簿優良',icon:Icons.Star,color:'bg-emerald-200'}];
         const PERIODS = [{id:'early',label:'早修'},{id:'p1',label:'第一節'},{id:'p2',label:'第二節'},{id:'p3',label:'第三節'},{id:'p4',label:'第四節'},{id:'lunch',label:'午餐'},{id:'nap',label:'午休'},{id:'p5',label:'第五節'},{id:'p6',label:'第六節'},{id:'p7',label:'第七節'},{id:'p8',label:'第八節'}];
         const ICON_MAP = { PackageX: Icons.PackageX, Clock: Icons.Clock, MicOff: Icons.MicOff, AlertCircle: Icons.AlertCircle, MessageCircle: Icons.MessageCircle, FileWarning: Icons.FileWarning, BookOpen: Icons.BookOpen, Coffee: Icons.Coffee, HelpCircle: Icons.HelpCircle, PenTool: Icons.PenTool };
 
-        // --- 學生選擇器元件 ---
+        // --- 元件: 學生選擇器 ---
         const StudentSelectorModal = ({ isOpen, onClose, students, selectedList, title, onToggle }) => {
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style={{zIndex: 9999}}>
                     <div className="bg-[#FEF9F2] w-full max-w-sm rounded-2xl border-4 border-[#5D4037] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-                        <div className="bg-yellow p-4 border-b-4 border-[#5D4037] flex justify-between items-center">
+                        <div className="bg-yellow-200 p-4 border-b-4 border-[#5D4037] flex justify-between items-center">
                             <h3 className="text-2xl font-bold text-[#5D4037]">點選學生</h3>
                             <button onClick={onClose} className="bg-white p-2 rounded-full border-2 border-[#5D4037]"><Icons.CheckCircle2/></button>
                         </div>
-                        <div className="bg-yellow px-4 pb-2 text-[#5D4037] font-bold opacity-80 border-b-2 border-[#5D4037] mb-2">正在登記：{title}</div>
+                        <div className="bg-yellow-100 px-4 pb-2 text-[#5D4037] font-bold opacity-80 border-b-2 border-[#5D4037] mb-2">正在登記：{title}</div>
                         <div className="p-4 overflow-y-auto grid grid-cols-4 gap-3 modal-scroll">
                             {students.map(s => (
                                 <button key={s.id} onClick={() => onToggle(s.id)} className={`p-2 rounded-xl border-2 border-[#5D4037] font-bold text-base flex flex-col items-center justify-center transition-all min-h-[70px] ${selectedList.includes(s.id) ? 'bg-[#5D4037] text-white transform scale-95 shadow-inner' : 'bg-white text-[#5D4037] hover:bg-gray-100'}`}>
@@ -164,7 +162,7 @@
                                 </button>
                             ))}
                         </div>
-                        <div className="p-4 bg-white border-t-4 border-[#5D4037] text-center"><button onClick={onClose} className="btn-3d w-full bg-mint py-4 text-2xl text-[#5D4037]">完 成</button></div>
+                        <div className="p-4 bg-white border-t-4 border-[#5D4037] text-center"><button onClick={onClose} className="btn-3d w-full bg-emerald-200 py-4 text-2xl text-[#5D4037]">完 成</button></div>
                     </div>
                 </div>
             );
@@ -203,7 +201,7 @@
                 setSaveStatus('saving');
                 setDb(prevDb => {
                     const newDb = { ...prevDb, [currentDate]: { ...prevDb[currentDate], [field]: value } };
-                    try { localStorage.setItem(DB_KEY, JSON.stringify(newDb)); setTimeout(() => setSaveStatus('saved'), 500); } catch { alert("儲存空間不足"); }
+                    try { localStorage.setItem(DB_KEY, JSON.stringify(newDb)); setTimeout(() => setSaveStatus('saved'), 500); } catch { alert("⚠️ 儲存空間不足！"); }
                     return newDb;
                 });
             };
@@ -250,20 +248,15 @@
             };
 
             const updatePeriodNote = (val) => { updateToday('periodNotes', { ...todayData.periodNotes, [currentLogPeriod]: val }); };
-
-            const handleBulkImportNames = () => {
-                if (!bulkNamesInput.trim()) return;
-                const names = bulkNamesInput.split(/\n/).map(n => n.trim()).filter(n => n);
-                if (confirm(`即將匯入 ${names.length} 位學生？`)) { setStudents(names.map((name, index) => ({ id: index + 1, name: name }))); setBulkNamesInput(''); alert('匯入成功！'); }
-            };
+            const handleBulkImportNames = () => { if (!bulkNamesInput.trim()) return; const names = bulkNamesInput.split(/\n/).map(n => n.trim()).filter(n => n); if (confirm(`即將匯入 ${names.length} 位學生？`)) { setStudents(names.map((name, index) => ({ id: index + 1, name: name }))); setBulkNamesInput(''); alert('匯入成功！'); } };
             const handleUpdateStudentName = (id, newName) => setStudents(students.map(s => s.id === id ? { ...s, name: newName } : s));
             const handleAddSubject = () => { if (newSubjectName.trim()) { const newId = `sub_${Date.now()}`; setSubjects([...subjects, { id: newId, label: newSubjectName.trim() }]); setNewSubjectName(''); setIsAddingSubject(false); setCurrentSubjectId(newId); } };
             const handleDeleteSubject = (id, e) => { e.stopPropagation(); if (confirm('確定刪除此科目？')) setSubjects(subjects.filter(s => s.id !== id)); };
-            const handleAddBehavior = () => { if (newBehaviorName.trim()) { const colors = ['bg-pink', 'bg-yellow', 'bg-mint', 'bg-blue-soft']; setBehaviors([...behaviors, { id: `beh_${Date.now()}`, label: newBehaviorName.trim(), icon: 'AlertCircle', color: colors[Math.floor(Math.random() * colors.length)] }]); setNewBehaviorName(''); } };
+            const handleAddBehavior = () => { if (newBehaviorName.trim()) { const colors = ['bg-pink-200', 'bg-yellow-200', 'bg-emerald-200', 'bg-blue-200']; setBehaviors([...behaviors, { id: `beh_${Date.now()}`, label: newBehaviorName.trim(), icon: 'AlertCircle', color: colors[Math.floor(Math.random() * colors.length)] }]); setNewBehaviorName(''); } };
             const handleDeleteBehavior = (id, e) => { e.stopPropagation(); if (confirm('確定刪除？')) setBehaviors(behaviors.filter(b => b.id !== id)); };
             const handleBehaviorClick = (behaviorId) => { if (isEditingBehaviors) return; if (behaviorId === 'other') { const note = prompt(`請輸入 ${PERIODS.find(p=>p.id===currentLogPeriod)?.label} 的其他說明：`, todayData.periodNotes[currentLogPeriod] || ''); if (note !== null) updatePeriodNote(note); openSelector('log', behaviorId, currentLogPeriod); } else { openSelector('log', behaviorId, currentLogPeriod); } };
             const openSelector = (type, category, period = null) => { setSelectorConfig({ type, category, period }); setIsSelectorOpen(true); };
-            const handleBackupData = () => { const backupData = { version: '14.0', timestamp: new Date().toISOString(), allData: db, settings: { subjects, behaviors, students, teacherNote } }; const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData)); const link = document.createElement('a'); link.href = dataStr; link.download = `班級小管家_備份_${currentDate}.json`; link.click(); };
+            const handleBackupData = () => { const backupData = { version: '10.0', timestamp: new Date().toISOString(), allData: db, settings: { subjects, behaviors, students, teacherNote } }; const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData)); const link = document.createElement('a'); link.href = dataStr; link.download = `班級小管家_備份_${currentDate}.json`; link.click(); };
             const handleRestoreData = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { try { const backup = JSON.parse(event.target.result); if (confirm(`確定要還原資料嗎？`)) { if (backup.allData) { setDb(backup.allData); localStorage.setItem(DB_KEY, JSON.stringify(backup.allData)); } if (backup.settings) { if (backup.settings.subjects) setSubjects(backup.settings.subjects); if (backup.settings.behaviors) setBehaviors(backup.settings.behaviors); if (backup.settings.students) setStudents(backup.settings.students); if (backup.settings.teacherNote) setTeacherNote(backup.settings.teacherNote); } alert('✅ 還原成功！'); } } catch { alert('❌ 檔案錯誤'); } }; reader.readAsText(file); event.target.value = ''; };
             const downloadCSV = (content, filename) => { const bom = '\uFEFF'; const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); };
 
@@ -296,12 +289,12 @@
                         <div className="flex gap-3"><div className="flex-1"><label className="text-gray-500 font-bold text-sm">日期</label><input type="date" value={currentDate} onChange={e => setCurrentDate(e.target.value)} className="input-hand" /></div><div className="w-1/3"><label className="text-gray-500 font-bold text-sm">週次</label><input type="text" value={todayData.week} onChange={e => updateToday('week', e.target.value)} className="input-hand text-center" /></div></div>
                         <div className="flex gap-3"><div className="flex-1"><label className="text-gray-500 font-bold text-sm">值日幹部</label><input type="text" value={todayData.dutyOfficer} onChange={e => updateToday('dutyOfficer', e.target.value)} className="input-hand" /></div><div className="flex-1"><label className="text-gray-500 font-bold text-sm">值日生</label><input type="text" value={todayData.dutyStudent} onChange={e => updateToday('dutyStudent', e.target.value)} className="input-hand" /></div></div>
                     </div>
-                    <div className="doodle-card p-5 bg-white relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-mint border-b-2 border-[#5D4037]"></div><h3 className="text-2xl font-bold mb-4 mt-2 flex items-center gap-2"><Icons.Clock /> 到校狀況</h3><div className="grid grid-cols-2 gap-4">{ATTENDANCE_TYPES.map(t => { const count = todayData.attendanceData[t.id]?.length || 0; const Icon = t.icon; return <button key={t.id} onClick={() => openSelector('attendance', t.id)} className={`btn-3d p-3 flex items-center justify-between px-4 ${t.color} text-lg h-14`}><div className="flex items-center gap-2"><Icon size={20}/><span>{t.label}</span></div>{count > 0 && <span className="bg-[#5D4037] text-white text-sm px-3 py-1 rounded-full">{count}</span>}</button> })}</div></div>
-                    <div className="doodle-card p-5 bg-white relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-yellow border-b-2 border-[#5D4037]"></div><h3 className="text-2xl font-bold mb-4 mt-2 flex items-center gap-2"><Icons.FileWarning /> 作業與聯絡簿</h3><div className="grid grid-cols-1 gap-3 mb-4">{CONTACT_BOOK_TYPES.map(t => { const count = todayData.missingData[t.id]?.length || 0; const Icon = t.icon; return <button key={t.id} onClick={() => openSelector('missing', t.id)} className={`btn-3d w-full py-3 flex justify-between px-5 text-lg ${t.color}`}><div className="flex items-center gap-3"><Icon size={22}/><span>{t.label}</span></div>{count > 0 && <span className="bg-[#5D4037] text-white text-sm px-3 py-1 rounded-full">{count}</span>}</button> })}</div>
+                    <div className="doodle-card p-5 bg-white relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-[#CDF0EA] border-b-2 border-[#5D4037]"></div><h3 className="text-2xl font-bold mb-4 mt-2 flex items-center gap-2"><Icons.Clock /> 到校狀況</h3><div className="grid grid-cols-2 gap-4">{ATTENDANCE_TYPES.map(t => { const count = todayData.attendanceData[t.id]?.length || 0; const Icon = t.icon; return <button key={t.id} onClick={() => openSelector('attendance', t.id)} className={`btn-3d p-3 flex items-center justify-between px-4 ${t.color} text-lg h-14`}><div className="flex items-center gap-2"><Icon size={20}/><span>{t.label}</span></div>{count > 0 && <span className="bg-[#5D4037] text-white text-sm px-3 py-1 rounded-full">{count}</span>}</button> })}</div></div>
+                    <div className="doodle-card p-5 bg-white relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-4 bg-[#FDFD96] border-b-2 border-[#5D4037]"></div><h3 className="text-2xl font-bold mb-4 mt-2 flex items-center gap-2"><Icons.FileWarning /> 作業與聯絡簿</h3><div className="grid grid-cols-1 gap-3 mb-4">{CONTACT_BOOK_TYPES.map(t => { const count = todayData.missingData[t.id]?.length || 0; const Icon = t.icon; return <button key={t.id} onClick={() => openSelector('missing', t.id)} className={`btn-3d w-full py-3 flex justify-between px-5 text-lg ${t.color}`}><div className="flex items-center gap-3"><Icon size={22}/><span>{t.label}</span></div>{count > 0 && <span className="bg-[#5D4037] text-white text-sm px-3 py-1 rounded-full">{count}</span>}</button> })}</div>
                     <div className="border-t-2 border-[#5D4037] pt-4 space-y-4">
-                        <div className="flex justify-between items-center"><h4 className="font-bold text-[#5D4037] text-lg">各科作業缺交</h4><button onClick={() => setIsAddingSubject(!isAddingSubject)} className="text-sm bg-mint px-3 py-1 rounded-full border-2 border-[#5D4037]"><Icons.Plus size={16}/></button></div>
+                        <div className="flex justify-between items-center"><h4 className="font-bold text-[#5D4037] text-lg">各科作業缺交</h4><button onClick={() => setIsAddingSubject(!isAddingSubject)} className="text-sm bg-[#CDF0EA] px-3 py-1 rounded-full border-2 border-[#5D4037]"><Icons.Plus size={16}/></button></div>
                         {isAddingSubject && <div className="flex gap-2"><input autoFocus type="text" value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} className="input-hand" /><button onClick={() => {if(newSubjectName){ const newId = `sub_${Date.now()}`; setSubjects([...subjects, {id: newId, label: newSubjectName}]); setNewSubjectName(''); setIsAddingSubject(false); setCurrentSubjectId(newId); }}} className="btn-3d px-4 bg-[#5D4037] text-white">OK</button></div>}
-                        <div className="space-y-3"><div className="flex gap-2"><select value={currentSubjectId} onChange={(e) => setCurrentSubjectId(e.target.value)} className="input-hand flex-1 font-bold">{subjects.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select><button onClick={() => {if(confirm('刪除?')) setSubjects(subjects.filter(s => s.id !== currentSubjectId))}} className="btn-3d bg-pink text-white px-3"><Icons.Trash2 /></button></div><button onClick={() => openSelector('missing', currentSubjectId)} className="btn-3d w-full bg-white py-4 text-lg flex justify-between px-5 border-2 border-[#5D4037]"><span className="font-bold flex items-center gap-2"><Icons.Edit3/> 登記 {subjects.find(s=>s.id===currentSubjectId)?.label} 缺交</span>{todayData.missingData[currentSubjectId]?.length > 0 ? <span className="bg-pink text-[#5D4037] px-3 py-1 rounded-full text-sm border border-[#5D4037]">{todayData.missingData[currentSubjectId].length}人</span> : <span className="text-gray-400 text-sm">點擊登記</span>}</button></div>
+                        <div className="space-y-3"><div className="flex gap-2"><select value={currentSubjectId} onChange={(e) => setCurrentSubjectId(e.target.value)} className="input-hand flex-1 font-bold">{subjects.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select><button onClick={() => {if(confirm('刪除?')) setSubjects(subjects.filter(s => s.id !== currentSubjectId))}} className="btn-3d bg-[#FFC4C4] text-white px-3"><Icons.Trash2 /></button></div><button onClick={() => openSelector('missing', currentSubjectId)} className="btn-3d w-full bg-white py-4 text-lg flex justify-between px-5 border-2 border-[#5D4037]"><span className="font-bold flex items-center gap-2"><Icons.Edit3/> 登記 {subjects.find(s=>s.id===currentSubjectId)?.label} 缺交</span>{todayData.missingData[currentSubjectId]?.length > 0 ? <div className="text-right"><span className="bg-[#FFC4C4] text-[#5D4037] px-3 py-1 rounded-full text-sm border border-[#5D4037] mb-1 inline-block">{todayData.missingData[currentSubjectId].length}人</span><div className="text-xs text-[#FF5252] font-bold">{todayData.missingData[currentSubjectId].sort((a,b)=>a-b).join('、')}號</div></div> : <span className="text-gray-400 text-sm">點擊登記</span>}</button></div>
                         <div className="flex flex-col gap-2 mt-2">{subjects.map(s => { const list = todayData.missingData[s.id]; if(!list || list.length===0) return null; return <div key={s.id} className="bg-white border-2 border-[#5D4037] px-3 py-2 rounded-xl text-sm font-bold flex justify-between"><span>{s.label}</span><span className="text-[#5D4037] opacity-80">缺交：{list.sort((a,b)=>a-b).join('、')}號</span></div> })}</div>
                     </div></div>
                 </div>
@@ -310,7 +303,7 @@
             const renderLog = () => (
                  <div className="space-y-5 pb-24">
                     <div className="doodle-card p-4 bg-white flex flex-col gap-3">
-                        <div className="flex items-center gap-2"><label className="font-bold text-[#5D4037] text-xl shrink-0">時段：</label><select value={currentLogPeriod} onChange={(e) => setCurrentLogPeriod(e.target.value)} className="input-hand text-2xl font-bold bg-yellow border-2 border-[#5D4037] h-14 flex-1">{PERIODS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select></div>
+                        <div className="flex items-center gap-2"><label className="font-bold text-[#5D4037] text-xl shrink-0">時段：</label><select value={currentLogPeriod} onChange={(e) => setCurrentLogPeriod(e.target.value)} className="input-hand text-2xl font-bold bg-[#FDFD96] border-2 border-[#5D4037] h-14 flex-1">{PERIODS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select></div>
                         <div className="relative"><input type="text" value={todayData.periodNotes[currentLogPeriod] || ''} onChange={(e) => updateToday('periodNotes', {...todayData.periodNotes, [currentLogPeriod]: e.target.value})} placeholder="輸入備註..." className="input-hand pr-10" /><Icons.PenTool className="absolute right-3 top-3 text-gray-400" /></div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">{behaviors.map(b => { const count = todayData.classLogData[currentLogPeriod]?.[b.id]?.length || 0; const Icon = ICON_MAP[b.icon] || Icons.AlertCircle; return <button key={b.id} onClick={() => { if(b.id==='other'){const n=prompt('說明:', todayData.periodNotes[currentLogPeriod]); if(n) updateToday('periodNotes', {...todayData.periodNotes, [currentLogPeriod]: n});} openSelector('log', b.id, currentLogPeriod); }} className={`btn-3d p-2 flex flex-col items-center gap-1 ${b.color} min-h-[90px] relative`}><Icon size={32} /><span className="text-lg">{b.label}</span>{count>0 && <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs border border-[#5D4037]">{count}</span>}</button> })}</div>
@@ -320,16 +313,16 @@
             const renderReports = () => (
                 <div className="pb-24 space-y-6">
                     <div className="doodle-card p-5 bg-orange-soft border-4 border-white shadow-lg"><h3 className="font-bold mb-3 flex items-center gap-2 text-2xl text-[#5D4037]"><Icons.FileSpreadsheet/> 教師專用：週報表</h3><button onClick={exportWholeClassWeekly} className="w-full btn-3d bg-white py-4 text-[#5D4037] flex items-center justify-center gap-3 text-xl"><Icons.Download/> 下載全班週報表</button></div>
-                    <div className="doodle-card p-4 bg-white border-4 border-red-500 shadow-xl transform rotate-1"><h3 className="font-bold mb-2 text-2xl flex items-center gap-2 text-red-600 border-b-2 border-red-200 pb-2"><Icons.Megaphone size={32} className="animate-bounce"/> 老師的話</h3><textarea value={teacherNote} onChange={(e) => setTeacherNote(e.target.value)} className="w-full h-32 p-3 border-2 border-red-200 rounded-xl outline-none text-xl font-bold text-[#5D4037] bg-red-50" placeholder="在此輸入重要事項..." /></div>
-                    <div className="doodle-card p-5 bg-yellow flex justify-between items-center"><div className="flex gap-3 items-center"><Icons.User size={36}/><div><div className="text-sm opacity-60 font-bold">查看學生</div><select value={selectedStudentReport} onChange={(e) => setSelectedStudentReport(Number(e.target.value))} className="bg-transparent text-2xl font-bold outline-none border-b-2 border-[#5D4037] min-w-[100px]">{students.map(s => <option key={s.id} value={s.id}>{s.id}. {s.name}</option>)}</select></div></div></div>
-                    <div className="space-y-4"><div className="bg-white border-2 border-[#5D4037] p-4 rounded-xl text-lg whitespace-pre-wrap h-48 overflow-y-auto shadow-inner">{generateParentMessage(selectedStudentReport)}</div><div className="flex gap-3 items-stretch"><button onClick={() => handleLineShare(generateParentMessage(selectedStudentReport))} className="flex-[3] btn-3d bg-line text-white py-4 text-xl flex items-center justify-center gap-2 shadow-lg"><Icons.Send size={24} /> 傳送LINE</button><button onClick={() => copyToClipboard(generateParentMessage(selectedStudentReport))} className="flex-1 btn-3d bg-mint py-4 flex flex-col items-center justify-center gap-1 text-xs opacity-80"><Icons.ClipboardCopy size={24} /> <span>複製</span></button></div></div>
+                    <div className="doodle-card p-4 bg-white border-4 border-red-500 shadow-xl transform rotate-1"><h3 className="font-bold mb-2 text-2xl flex items-center gap-2 text-red-600 border-b-2 border-red-200 pb-2"><Icons.Megaphone/> 老師的話</h3><textarea value={teacherNote} onChange={(e) => setTeacherNote(e.target.value)} className="w-full h-32 p-3 border-2 border-red-200 rounded-xl outline-none text-xl font-bold text-[#5D4037] bg-red-50" placeholder="在此輸入重要事項..." /></div>
+                    <div className="doodle-card p-5 bg-[#FDFD96] flex justify-between items-center"><div className="flex gap-3 items-center"><Icons.User size={36}/><div><div className="text-sm opacity-60 font-bold">查看學生</div><select value={selectedStudentReport} onChange={(e) => setSelectedStudentReport(Number(e.target.value))} className="bg-transparent text-2xl font-bold outline-none border-b-2 border-[#5D4037] min-w-[100px]">{students.map(s => <option key={s.id} value={s.id}>{s.id}. {s.name}</option>)}</select></div></div></div>
+                    <div className="space-y-4"><div className="bg-white border-2 border-[#5D4037] p-4 rounded-xl text-lg whitespace-pre-wrap h-48 overflow-y-auto shadow-inner">{generateParentMessage(selectedStudentReport)}</div><div className="flex gap-3 items-stretch"><button onClick={() => handleLineShare(generateParentMessage(selectedStudentReport))} className="flex-[3] btn-3d bg-line text-white py-4 text-xl flex items-center justify-center gap-2 shadow-lg"><Icons.Send/> 傳送LINE</button><button onClick={() => copyToClipboard(generateParentMessage(selectedStudentReport))} className="flex-1 btn-3d bg-mint py-4 flex flex-col items-center justify-center gap-1 text-xs opacity-80"><Icons.ClipboardCopy/> <span>複製</span></button></div></div>
                 </div>
             );
 
             const renderSettings = () => (
                 <div className="pb-24 space-y-8">
-                   <div className="doodle-card p-5 bg-dark border-4 border-[#5D4037]"><h3 className="text-2xl font-bold mb-4 text-white flex items-center gap-2"><Icons.Database/> 備份與還原</h3><div className="grid grid-cols-2 gap-4"><button onClick={handleBackupData} className="btn-3d bg-mint py-3 text-[#5D4037]">下載備份</button><div className="relative"><input type="file" accept=".json" onChange={handleRestoreData} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><button className="btn-3d bg-yellow py-3 w-full text-[#5D4037]">還原資料</button></div></div></div>
-                   <div className="doodle-card p-5 bg-white"><h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-[#5D4037] pb-3"><Icons.UserCog/> 學生名單</h3><div className="mb-6"><textarea className="input-hand h-32" placeholder="王小明&#10;李大同" value={bulkNamesInput} onChange={(e) => setBulkNamesInput(e.target.value)} /><button onClick={handleBulkImportNames} className="mt-2 w-full btn-3d bg-yellow text-[#5D4037] py-3">匯入名單</button></div></div>
+                   <div className="doodle-card p-5 bg-[#4A4A4A] border-4 border-[#5D4037]"><h3 className="text-2xl font-bold mb-4 text-white flex items-center gap-2"><Icons.Database/> 備份與還原</h3><div className="grid grid-cols-2 gap-4"><button onClick={handleBackupData} className="btn-3d bg-[#CDF0EA] py-3 text-[#5D4037]">下載備份</button><div className="relative"><input type="file" accept=".json" onChange={handleRestoreData} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><button className="btn-3d bg-[#FDFD96] py-3 w-full text-[#5D4037]">還原資料</button></div></div></div>
+                   <div className="doodle-card p-5 bg-white"><h3 className="text-2xl font-bold mb-4 flex items-center gap-2 border-b-2 border-[#5D4037] pb-3"><Icons.UserCog/> 學生名單</h3><div className="mb-6"><textarea className="input-hand h-32" placeholder="王小明&#10;李大同" value={bulkNamesInput} onChange={(e) => setBulkNamesInput(e.target.value)} /><button onClick={handleBulkImportNames} className="mt-2 w-full btn-3d bg-[#FDFD96] text-[#5D4037] py-3">匯入名單</button></div></div>
                 </div>
             );
             
@@ -350,7 +343,7 @@
                     </main>
                     {StudentSelectorModal({ isOpen: isSelectorOpen, onClose: () => setIsSelectorOpen(false), students, selectedList: getSelectedList(), title: selectorConfig.type === 'attendance' ? ATTENDANCE_TYPES.find(t => t.id === selectorConfig.category)?.label : selectorConfig.type === 'missing' ? (CONTACT_BOOK_TYPES.find(t => t.id === selectorConfig.category)?.label || subjects.find(s => s.id === selectorConfig.category)?.label + '缺交') : `${PERIODS.find(p => p.id === selectorConfig.period)?.label} - ${behaviors.find(b => b.id === selectorConfig.category)?.label}`, onToggle: toggleStudent })}
                     <nav className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[98%] max-w-sm bg-[#FFF] border-3 border-[#5D4037] rounded-2xl shadow-[4px_4px_0px_#5D4037] flex justify-between px-3 py-3 z-40">
-                        {[{ id: 'basic', icon: Icons.User, label: '點名', color: 'bg-mint' }, { id: 'log', icon: Icons.Edit3, label: '紀錄', color: 'bg-yellow' }, { id: 'review', icon: Icons.List, label: '日誌', color: 'bg-pink' }, { id: 'report', icon: Icons.FileSpreadsheet, label: '報表', color: 'bg-blue-soft' }, { id: 'settings', icon: Icons.Settings, label: '設定', color: 'bg-red-alert' }].map(tab => ( <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${tab.id === 'settings' ? 'nav-btn-settings ' + (activeTab === 'settings' ? 'active' : '') : (activeTab === tab.id ? `${tab.color} -translate-y-4 border-2 border-[#5D4037] shadow-sm` : 'opacity-60')}`}><tab.icon size={32} className={tab.id === 'settings' ? 'text-white' : 'text-coffee'}/><span className={`text-xs font-black mt-1 ${tab.id === 'settings' ? 'text-white' : 'text-[#5D4037]'}`}>{tab.label}</span></button> ))}
+                        {[{ id: 'basic', icon: Icons.User, label: '點名', color: 'bg-mint' }, { id: 'log', icon: Icons.Edit3, label: '紀錄', color: 'bg-yellow' }, { id: 'review', icon: Icons.List, label: '日誌', color: 'bg-pink' }, { id: 'report', icon: Icons.FileSpreadsheet, label: '報表', color: 'bg-blue-soft' }, { id: 'settings', icon: Icons.Settings, label: '設定', color: 'bg-red-alert' }].map(tab => ( <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex-1 flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${tab.id === 'settings' ? 'nav-btn-settings ' + (activeTab === 'settings' ? 'active' : '') : (activeTab === tab.id ? `${tab.color} -translate-y-4 border-2 border-[#5D4037] shadow-sm` : 'opacity-60')}`}><div className={tab.id === 'settings' ? 'text-white' : 'text-[#5D4037]'}><tab.icon/></div><span className={`text-xs font-black mt-1 ${tab.id === 'settings' ? 'text-white' : 'text-[#5D4037]'}`}>{tab.label}</span></button> ))}
                     </nav>
                 </div>
             );
