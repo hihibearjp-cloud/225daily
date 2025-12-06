@@ -4,289 +4,306 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- PWA 必要設定 -->
-  <meta name="theme-color" content="#5D4037">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
-
   <title>管班級</title>
 
-  <style>
-    :root{
-      --coffee:#5D4037;
-      --bg:#FEF9F2;
-    }
-    *{ box-sizing:border-box; }
-    body{
-      font-family: 'ZCOOL KuaiLe', sans-serif;
-      background: var(--bg);
-      margin:0;
-      padding:16px;
-    }
-    header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:12px;
-    }
-    h1{ margin:0; font-size:1.4rem; }
-    .card{
-      background:#fff;
-      border:3px solid var(--coffee);
-      border-radius:12px;
-      padding:12px;
-      margin-top:12px;
-      box-shadow:4px 4px 0 rgba(0,0,0,0.04);
-    }
-    .row{ display:flex; gap:8px; align-items:center; }
-    .row.wrap{ flex-wrap:wrap; }
-    .btn{
-      border:3px solid var(--coffee);
-      padding:8px 12px;
-      border-radius:12px;
-      background:#fff;
-      cursor:pointer;
-      font-weight:700;
-    }
-    .btn.big{ padding:12px 16px; font-size:1rem; }
-    .badge{
-      background:var(--coffee);
-      color:#fff;
-      padding:4px 8px;
-      border-radius:999px;
-      font-weight:800;
-      margin-left:6px;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-      gap:8px;
-    }
-    .student{
-      border:2px dashed #ccc;
-      border-radius:8px;
-      padding:6px;
-      background:#fff;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-    .modal{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.45);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      z-index:999;
-    }
-    .modal .box{
-      background:#fff;
-      padding:12px;
-      border-radius:12px;
-      width:100%;
-      max-width:520px;
-      border:3px solid var(--coffee);
-      max-height:85vh;
-      overflow:auto;
-    }
-    .list-grid{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:8px;
-    }
-    textarea,input,select{
-      width:100%;
-      padding:8px;
-      border:2px solid var(--coffee);
-      border-radius:8px;
-    }
-    .small{ font-size:0.85rem; }
-    footer{ margin-top:24px; font-size:0.8rem; color:#666; }
-    @media(max-width:600px){
-      .list-grid{ grid-template-columns:repeat(3,1fr); }
-      h1{ font-size:1.1rem; }
-    }
-  </style>
-</head>
-
-<body>
-<div class="container">
-
-  <header>
-    <div>
-      <h1>📚 管班級</h1>
-      <div class="small" id="subtitle"></div>
-    </div>
-    <div class="row">
-      <button class="btn" id="backupBtn">備份 JSON</button>
-      <input id="restoreFile" type="file" accept=".json" style="display:none">
-      <button class="btn" id="restoreBtn">還原 JSON</button>
-    </div>
-  </header>
-
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <div style="flex:1;max-width:360px">
-        <label class="small">日期</label>
-        <input type="date" id="dateInput" />
-      </div>
-      <div style="flex:1;max-width:240px">
-        <label class="small">週次 / 值日</label>
-        <input id="weekInput" placeholder="例：2週 / 幹部: 王小明" />
-      </div>
-      <div style="flex-basis:180px;text-align:right">
-        <label class="small">&nbsp;</label><br/>
-        <button class="btn big" id="exportCsvBtn">匯出今日 CSV</button>
-      </div>
-    </div>
-  </div>
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- PWA 必要設定 -->
-  <meta name="theme-color" content="#5D4037">
+  <!-- PWA 設定 -->
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#5D4037">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="icon" sizes="192x192" href="icons/icon-192.png">
-
-  <title>管班級</title>
 
   <style>
-    :root{
-      --coffee:#5D4037;
-      --bg:#FEF9F2;
-    }
-    *{ box-sizing:border-box; }
-    body{
-      font-family: 'ZCOOL KuaiLe', sans-serif;
-      background: var(--bg);
-      margin:0;
-      padding:16px;
-    }
-    header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:12px;
-    }
-    h1{ margin:0; font-size:1.4rem; }
-    .card{
-      background:#fff;
-      border:3px solid var(--coffee);
-      border-radius:12px;
-      padding:12px;
-      margin-top:12px;
-      box-shadow:4px 4px 0 rgba(0,0,0,0.04);
-    }
-    .row{ display:flex; gap:8px; align-items:center; }
-    .row.wrap{ flex-wrap:wrap; }
-    .btn{
-      border:3px solid var(--coffee);
-      padding:8px 12px;
-      border-radius:12px;
-      background:#fff;
-      cursor:pointer;
-      font-weight:700;
-    }
-    .btn.big{ padding:12px 16px; font-size:1rem; }
-    .badge{
-      background:var(--coffee);
-      color:#fff;
-      padding:4px 8px;
-      border-radius:999px;
-      font-weight:800;
-      margin-left:6px;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-      gap:8px;
-    }
-    .student{
-      border:2px dashed #ccc;
-      border-radius:8px;
-      padding:6px;
-      background:#fff;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-    .modal{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.45);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      z-index:999;
-    }
-    .modal .box{
-      background:#fff;
-      padding:12px;
-      border-radius:12px;
-      width:100%;
-      max-width:520px;
-      border:3px solid var(--coffee);
-      max-height:85vh;
-      overflow:auto;
-    }
-    .list-grid{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:8px;
-    }
-    textarea,input,select{
-      width:100%;
-      padding:8px;
-      border:2px solid var(--coffee);
-      border-radius:8px;
-    }
-    .small{ font-size:0.85rem; }
-    footer{ margin-top:24px; font-size:0.8rem; color:#666; }
-    @media(max-width:600px){
-      .list-grid{ grid-template-columns:repeat(3,1fr); }
-      h1{ font-size:1.1rem; }
-    }
+    :root{--coffee:#5D4037;--bg:#FEF9F2}
+    *{box-sizing:border-box}
+    body{font-family:'ZCOOL KuaiLe',sans-serif;background:var(--bg);margin:0;padding:16px}
+    header{display:flex;justify-content:space-between;align-items:center}
+    h1{margin:0;font-size:1.4rem}
+    .card{background:#fff;border:3px solid var(--coffee);border-radius:12px;padding:12px;margin-top:12px;box-shadow:4px 4px 0 rgba(0,0,0,0.04)}
+    .row{display:flex;gap:8px;align-items:center}
+    .row.wrap{flex-wrap:wrap}
+    .btn{border:3px solid var(--coffee);padding:8px 12px;border-radius:12px;background:#fff;cursor:pointer;font-weight:700}
+    .btn.big{padding:12px 16px;font-size:1rem}
+    .btn.primary{background:#CDF0EA}
+    .btn.warn{background:#FDFD96}
+    .badge{background:var(--coffee);color:#fff;padding:4px 8px;border-radius:999px;font-weight:800}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+    .student{border:2px dashed #ccc;border-radius:8px;padding:6px;background:#fff;display:flex;justify-content:space-between;align-items:center}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:999}
+    .modal .box{background:#fff;padding:12px;border-radius:12px;width:100%;max-width:520px;max-height:85vh;overflow:auto;border:3px solid var(--coffee)}
+    .list-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    textarea,input,select{width:100%;padding:8px;border:2px solid var(--coffee);border-radius:8px}
+    .small{font-size:0.85rem}
+    footer{margin-top:24px;font-size:0.8rem;color:#666}
+    @media(max-width:600px){ .list-grid{grid-template-columns:repeat(3,1fr)} h1{font-size:1.1rem} }
   </style>
 </head>
-
 <body>
-<div class="container">
+  <div class="container">
+    <header>
+      <div>
+        <h1>📚 管班級</h1>
+        <div class="small" id="subtitle"></div>
+      </div>
+      <div class="row">
+        <button class="btn" id="backupBtn">備份 JSON</button>
+        <input id="restoreFile" type="file" accept=".json" style="display:none">
+        <button class="btn" id="restoreBtn">還原 JSON</button>
+      </div>
+    </header>
 
-  <header>
-    <div>
-      <h1>📚 管班級</h1>
-      <div class="small" id="subtitle"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div style="flex:1;max-width:360px">
+          <label class="small">日期</label>
+          <input type="date" id="dateInput" />
+        </div>
+        <div style="flex:1;max-width:240px">
+          <label class="small">週次 / 值日</label>
+          <input id="weekInput" placeholder="例：2週 / 幹部: 王小明" />
+        </div>
+        <div style="flex-basis:180px;text-align:right">
+          <label class="small">&nbsp;</label><br/>
+          <button class="btn big" id="exportCsvBtn">匯出今日 CSV</button>
+        </div>
+      </div>
     </div>
-    <div class="row">
-      <button class="btn" id="backupBtn">備份 JSON</button>
-      <input id="restoreFile" type="file" accept=".json" style="display:none">
-      <button class="btn" id="restoreBtn">還原 JSON</button>
-    </div>
-  </header>
 
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <div style="flex:1;max-width:360px">
-        <label class="small">日期</label>
-        <input type="date" id="dateInput" />
-      </div>
-      <div style="flex:1;max-width:240px">
-        <label class="small">週次 / 值日</label>
-        <input id="weekInput" placeholder="例：2週 / 幹部: 王小明" />
-      </div>
-      <div style="flex-basis:180px;text-align:right">
-        <label class="small">&nbsp;</label><br/>
-        <button class="btn big" id="exportCsvBtn">匯出今日 CSV</button>
+    <div class="card">
+      <h3>🔔 到校狀況</h3>
+      <div class="grid" id="attendanceBtns"></div>
+    </div>
+
+    <div class="card">
+      <h3>📘 作業 / 聯絡簿</h3>
+      <div class="row wrap" id="missingBtns"></div>
+      <div style="margin-top:8px">
+        <label class="small">科目列表（一行一個）</label>
+        <textarea id="bulkSubject" rows="3" placeholder="國文&#10;數學"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="addSubjectBtn">新增科目</button>
+          <button class="btn" id="resetSubjectsBtn">重置預設科目</button>
+        </div>
       </div>
     </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3>👥 學生名單</h3>
+        <div class="row">
+          <button class="btn" id="bulkImportBtn">批次匯入姓名</button>
+          <button class="btn" id="resetStudentsBtn">恢復預設 (30 人)</button>
+        </div>
+      </div>
+
+      <div style="margin-top:8px" id="studentsContainer"></div>
+    </div>
+
+    <footer>
+      提示：把所有檔案上傳到 GitHub，啟用 GitHub Pages 即可變成 App！
+    </footer>
   </div>
+
+  <div id="modalRoot"></div>
+
+  <script>
+    const DB_KEY = 'classlog_simple_v1';
+    const DEFAULT_SUBJECTS = ['國文','英語','數學','理化','社會'];
+    const ATTENDANCE_TYPES = [
+      { id:'late', label:'遲到', color:'#FDFD96' },
+      { id:'sick', label:'病假', color:'#CDF0EA' },
+      { id:'official', label:'公假', color:'#C4E4FF' },
+      { id:'personal', label:'事假', color:'#E2C4FF' },
+      { id:'absent', label:'缺席', color:'#FFC4C4' }
+    ];
+    let state = {
+      date: null,
+      week: '',
+      students: Array.from({length:30}, (_,i)=>({id:i+1,name:`${i+1}號`})),
+      subjects: [...DEFAULT_SUBJECTS],
+      attendance: {},
+      missing: {}
+    };
+
+    const $ = (sel)=>document.querySelector(sel);
+    const el=(tag,props={},...children)=>{const d=document.createElement(tag);for(const k in props){if(k==='style')Object.assign(d.style,props[k]);else if(k.startsWith('on'))d.addEventListener(k.slice(2),props[k]);else d.setAttribute(k,props[k]);}children.forEach(c=>{if(typeof c==='string')d.appendChild(document.createTextNode(c));else if(c)d.appendChild(c);});return d;}
+
+    function loadState(){
+      try{
+        const raw=localStorage.getItem(DB_KEY);
+        if(raw){state={...state,...JSON.parse(raw)};}
+      }catch(e){}
+      if(!state.date){
+        const d=new Date();
+        const off=d.getTimezoneOffset()*60000;
+        state.date=new Date(d.getTime()-off).toISOString().split('T')[0];
+      }
+    }
+    function saveState(){localStorage.setItem(DB_KEY,JSON.stringify(state));render();}
+
+    function render(){
+      $('#dateInput').value=state.date;
+      $('#weekInput').value=state.week||'';
+      $('#subtitle').textContent=state.date;
+
+      const attRoot=$('#attendanceBtns'); attRoot.innerHTML='';
+      ATTENDANCE_TYPES.forEach(t=>{
+        const count=(state.attendance[t.id]||[]).length;
+        const b=el('button',{class:'btn',style:{background:t.color},onClick:()=>openSelector('attendance',t.id,t.label)},t.label,el('span',{class:'badge'},count));
+        attRoot.appendChild(b);
+      });
+
+      const missingRoot=$('#missingBtns'); missingRoot.innerHTML='';
+      const contactTypes=['聯絡簿缺交','家長未簽名','聯絡簿優良'];
+      contactTypes.concat(state.subjects).forEach((label,idx)=>{
+        const id='m_'+idx;
+        const count=(state.missing[id]||[]).length;
+        const b=el('button',{class:'btn',onClick:()=>openSelector('missing',id,label)},label,el('span',{class:'badge',style:{marginLeft:'8px'}},count));
+        missingRoot.appendChild(b);
+      });
+
+      const sc=$('#studentsContainer'); sc.innerHTML='';
+      state.students.forEach(s=>{
+        sc.appendChild(
+          el('div',{class:'student'},
+            el('div',{},`${s.id}. ${s.name}`),
+            el('button',{class:'btn',onClick:()=>editStudentName(s.id)},'編輯')
+          )
+        );
+      });
+    }
+
+    function openSelector(type,key,label){
+      const modalRoot=$('#modalRoot'); modalRoot.innerHTML='';
+      modalRoot.appendChild(
+        el('div',{class:'modal'},
+          el('div',{class:'box'},
+            el('div',{},el('strong',{},label),el('button',{class:'btn',style:{float:'right'},onClick:closeModal},'完成')),
+            el('div',{style:{height:'12px'}}),
+            el('div',{class:'list-grid'},
+              ...state.students.map(s=>{
+                const selected=(type==='attendance'?state.attendance[key]||[]:state.missing[key]||[]).includes(s.id);
+                return el('button',{
+                  class:'btn',
+                  style:{background:selected?'#5D4037':'#fff',color:selected?'#fff':'#000'},
+                  onClick:()=>toggleMark(type,key,s.id)
+                },`${s.id}. ${s.name}`);
+              })
+            )
+          )
+        )
+      );
+    }
+
+    function closeModal(){ $('#modalRoot').innerHTML=''; saveState(); }
+
+    function toggleMark(type,key,id){
+      const arr=(type==='attendance'?state.attendance:state.missing)[key]||[];
+      if(arr.includes(id))
+        (type==='attendance'?state.attendance:state.missing)[key]=arr.filter(x=>x!==id);
+      else
+        (type==='attendance'?state.attendance:state.missing)[key]=[...arr,id];
+      render();
+    }
+
+    function editStudentName(id){
+      const s=state.students.find(x=>x.id===id);
+      const name=prompt('修改學生名稱',s.name);
+      if(name!==null){s.name=name.trim()||s.name;saveState();}
+    }
+
+    function exportTodayCSV(){
+      const d=state.date;
+      let csv=`班級日誌,日期,${d}\n\n`;
+      csv+='類別,項目,學生\n';
+      for(const t of ATTENDANCE_TYPES){
+        const list=(state.attendance[t.id]||[]).map(id=>state.students.find(s=>s.id===id)?.name||id).join('、');
+        if(list) csv+=`到校,${t.label},"${list}"\n`;
+      }
+      csv+='\n作業缺交\n';
+      Object.keys(state.missing).forEach(k=>{
+        if(state.missing[k]?.length>0){
+          const idx=Number(k.split('_')[1]);
+          const label=['聯絡簿缺交','家長未簽名','聯絡簿優良'][idx] || state.subjects[idx-3] || k;
+          const names=state.missing[k].map(id=>state.students.find(s=>s.id===id)?.name||id).join('、');
+          csv+=`${label},缺交,"${names}"\n`;
+        }
+      });
+      const blob=new Blob([`\uFEFF${csv}`],{type:'text/csv;charset=utf-8;'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`班級日誌_${d}.csv`; a.click();
+    }
+
+    function backupJSON(){
+      const data={version:'v1',timestamp:new Date().toISOString(),data:state};
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`backup_${state.date}.json`; a.click();
+    }
+
+    function restoreFromFile(f){
+      const reader=new FileReader();
+      reader.onload=e=>{
+        try{
+          const obj=JSON.parse(e.target.result);
+          if(obj.data){state={...state,...obj.data};saveState();alert('還原成功');}
+          else alert('格式錯誤');
+        }catch{alert('讀取失敗');}
+      };
+      reader.readAsText(f);
+    }
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      loadState();
+
+      $('#dateInput').addEventListener('change',e=>{state.date=e.target.value;saveState();});
+      $('#weekInput').addEventListener('input',e=>{state.week=e.target.value;saveState();});
+
+      $('#bulkImportBtn').addEventListener('click',()=>{
+        const txt=prompt('一行一個名字：',state.students.map(s=>s.name).join('\n'));
+        if(txt!==null){
+          const arr=txt.split('\n').map(x=>x.trim()).filter(Boolean);
+          if(arr.length>0){
+            state.students=arr.map((n,i)=>({id:i+1,name:n}));
+            saveState();
+          }
+        }
+      });
+
+      $('#resetStudentsBtn').addEventListener('click',()=>{
+        if(confirm('恢復預設 30 人？')){
+          state.students=Array.from({length:30},(_,i)=>({id:i+1,name:`${i+1}號`}));
+          saveState();
+        }
+      });
+
+      $('#addSubjectBtn').addEventListener('click',()=>{
+        const txt=$('#bulkSubject').value.trim();
+        if(txt){
+          const arr=txt.split('\n').map(x=>x.trim()).filter(Boolean);
+          state.subjects=[...state.subjects,...arr];
+          $('#bulkSubject').value='';
+          saveState();
+        }
+      });
+
+      $('#resetSubjectsBtn').addEventListener('click',()=>{
+        state.subjects=[...DEFAULT_SUBJECTS];
+        saveState();
+      });
+
+      $('#exportCsvBtn').addEventListener('click',exportTodayCSV);
+
+      $('#backupBtn').addEventListener('click',backupJSON);
+      $('#restoreBtn').addEventListener('click',()=>$('#restoreFile').click());
+      $('#restoreFile').addEventListener('change',e=>{
+        const f=e.target.files[0]; if(f) restoreFromFile(f);
+        e.target.value='';
+      });
+
+      render();
+
+      // 註冊 Service Worker（PWA 必要）
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.register('service-worker.js');
+      }
+    });
+  </script>
+</body>
+</html>
